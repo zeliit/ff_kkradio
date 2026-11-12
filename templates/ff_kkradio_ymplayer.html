@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <h4>YMPlayer용 복붙</h4>
+  <div class="alert alert-info py-2">
+    각 채널은 한 줄 형식입니다: 이름 | 실제 스트림주소 | 설명 | 홈페이지 | 분류
+  </div>
+
+  <div class="mb-2">
+    <button type="button" id="copy-all" class="btn btn-primary font-weight-bold">전체복사</button>
+    <span id="copy-result" class="ml-2"></span>
+  </div>
+
+  <textarea id="ymplayer-copy" class="form-control" rows="28" readonly style="font-family:monospace;white-space:pre;overflow:auto;">{{ copy_text }}</textarea>
+</div>
+
+<script>
+$('#copy-all').on('click', function(){
+  var ta = document.getElementById('ymplayer-copy');
+  var text = ta.value;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(function(){
+      $('#copy-result').text('전체 복사 완료');
+    }).catch(function(){
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      $('#copy-result').text('전체 복사 완료');
+    });
+  } else {
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    $('#copy-result').text('전체 복사 완료');
+  }
+});
+</script>
+{% endblock %}
