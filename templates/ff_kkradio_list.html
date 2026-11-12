@@ -10,11 +10,12 @@
   <div class="table-responsive">
     <table class="table table-sm table-striped table-hover align-middle">
       <thead class="thead-dark">
-        <tr><th>이름</th><th>분류</th><th>방송사</th><th style="min-width:420px">개별 풀 주소</th><th>실행</th><th>원본</th></tr>
+        <tr><th style="width:56px">SEQ</th><th>이름</th><th>분류</th><th>방송사</th><th style="min-width:420px">개별 풀 주소</th><th>실행</th><th>원본</th></tr>
       </thead>
       <tbody>
       {% for c in channels %}
         <tr>
+          <td class="text-center font-weight-bold">{{ c.seq }}</td>
           <td>{{ c.name }}</td>
           <td>{{ c.group }}</td>
           <td>{{ c.station|upper }}</td>
