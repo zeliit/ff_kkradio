@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex align-items-center mb-3"><h4 class="mb-0">KK Radio 채널</h4></div>
+  <div class="alert alert-secondary py-2">전체/묶음 M3U와 개별 고정주소를 동시에 제공합니다. 실제 원본 주소가 바뀌거나 헤더가 필요한 채널은 FF가 중간에서 해석·프록시합니다.</div>
+  <div class="mb-3">
+    <strong>전체 M3U:</strong>
+    <code id="all-m3u">{{ request.url_root.rstrip('/') }}/ff_kkradio/api/m3u</code>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped table-hover">
+      <thead class="thead-dark"><tr><th>이름</th><th>분류</th><th>방송사</th><th>개별 주소</th><th>확인</th></tr></thead>
+      <tbody>
+      {% for c in channels %}
+        <tr>
+          <td>{{ c.name }}</td><td>{{ c.group }}</td><td>{{ c.station|upper }}</td>
+          <td><code>/ff_kkradio/api/live.m3u8?id={{ c.id }}</code></td>
+          <td><button type="button" class="btn btn-sm btn-primary kr-resolve" data-id="{{ c.id }}">원본확인</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <h5 class="mt-4">묶음 M3U</h5>
+  {% for g in groups %}<div><code>/ff_kkradio/api/m3u?group={{ g|urlencode }}</code> - {{ g }}</div>{% endfor %}
+  <h5 class="mt-4">방송사별 M3U</h5>
+  {% for s in stations %}<div><code>/ff_kkradio/api/m3u?station={{ s }}</code> - {{ s|upper }}</div>{% endfor %}
+  <div id="kr-msg" class="small mt-3"></div>
+</div>
+<script>
+$('.kr-resolve').on('click', function(){
+  var id=$(this).data('id'), msg=$('#kr-msg').text('확인 중...');
+  $.post('/ff_kkradio/ajax/resolve',{id:id}).done(function(r){
+    if(r.ret==='success'){ if(navigator.clipboard) navigator.clipboard.writeText(r.url); msg.text('원본 주소 확인/복사: '+r.url); }
+    else msg.text(r.message||'실패');
+  }).fail(function(xhr){msg.text(((xhr.responseJSON||{}).message)||'확인 실패');});
+});
+</script>
+{% endblock %}
