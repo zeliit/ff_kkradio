@@ -78,6 +78,8 @@ def _headers(ch):
         "Connection": "keep-alive",
     }
     ref = REFERERS.get(station)
+    if station == "mbc" and ch.get("city"):
+        ref = ch.get("homepage") or None
     if ref:
         h["Referer"] = ref
     return h
@@ -196,17 +198,21 @@ def _kbs_direct_resolve(ch):
     r = requests.get(api, headers=_headers(ch), timeout=(6, 12))
     r.raise_for_status()
     obj = r.json()
-    candidates = []
+    radio_candidates = []
+    any_candidates = []
     def walk(x):
         if isinstance(x, dict):
-            if x.get("media_type") == "radio" and x.get("service_url"):
-                candidates.append(x["service_url"])
+            if x.get("service_url"):
+                any_candidates.append(x["service_url"])
+                if x.get("media_type") == "radio":
+                    radio_candidates.append(x["service_url"])
             for v in x.values():
                 walk(v)
         elif isinstance(x, list):
             for v in x:
                 walk(v)
     walk(obj)
+    candidates = radio_candidates or any_candidates
     if not candidates:
         raise ValueError("KBS service_url 추출 실패")
     return candidates[0]
