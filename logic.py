@@ -246,7 +246,30 @@ class Logic(PluginModuleBase):
             view_rows.append(ch)
         groups = sorted({x.get("group", "기타") for x in rows})
         stations = sorted({x.get("station", "") for x in rows if x.get("station")})
-        return render_template("ff_kkradio_list.html", channels=view_rows, groups=groups, stations=stations)
+        group_urls = [
+            {
+                "name": g,
+                "url": base + ToolUtil.make_apikey_url("/ff_kkradio/api/m3u?" + urlencode({"group": g}))
+            }
+            for g in groups
+        ]
+        station_urls = [
+            {
+                "name": st,
+                "url": base + ToolUtil.make_apikey_url("/ff_kkradio/api/m3u?" + urlencode({"station": st}))
+            }
+            for st in stations
+        ]
+        all_m3u_url = base + ToolUtil.make_apikey_url("/ff_kkradio/api/m3u")
+        return render_template(
+            "ff_kkradio_list.html",
+            channels=view_rows,
+            groups=groups,
+            stations=stations,
+            group_urls=group_urls,
+            station_urls=station_urls,
+            all_m3u_url=all_m3u_url,
+        )
 
     def process_ajax(self, sub, req):
         if sub == "save":
