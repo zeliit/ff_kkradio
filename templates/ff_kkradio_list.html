@@ -5,7 +5,7 @@
   <div class="alert alert-secondary py-2">전체/묶음 M3U와 개별 고정주소를 동시에 제공합니다. 실제 원본 주소가 바뀌거나 헤더가 필요한 채널은 FF가 중간에서 해석·프록시합니다.</div>
   <div class="mb-3">
     <strong>전체 M3U:</strong>
-    <code id="all-m3u">{{ request.url_root.rstrip('/') }}/ff_kkradio/api/m3u</code>
+    <code id="all-m3u">{{ all_m3u_url }}</code>
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-striped table-hover align-middle">
@@ -34,9 +34,9 @@
     </table>
   </div>
   <h5 class="mt-4">묶음 M3U</h5>
-  {% for g in groups %}<div><code>/ff_kkradio/api/m3u?group={{ g|urlencode }}</code> - {{ g }}</div>{% endfor %}
+  {% for item in group_urls %}<div><code style="word-break:break-all">{{ item.url }}</code> - {{ item.name }}</div>{% endfor %}
   <h5 class="mt-4">방송사별 M3U</h5>
-  {% for s in stations %}<div><code>/ff_kkradio/api/m3u?station={{ s }}</code> - {{ s|upper }}</div>{% endfor %}
+  {% for item in station_urls %}<div><code style="word-break:break-all">{{ item.url }}</code> - {{ item.name|upper }}</div>{% endfor %}
   <div id="kr-msg" class="small mt-3"></div>
 </div>
 <script>
