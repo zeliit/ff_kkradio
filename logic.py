@@ -354,7 +354,8 @@ class Logic(PluginModuleBase):
             ch = dict(item)
             ch["seq"] = seq
             ch["live_url"] = _ff_api_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
-            # 새창 재생은 별도 JS 플레이어를 거치지 않고 FF의 실제 HLS URL을 직접 연다.
+            ch["radio_url"] = _ff_api_url("/ff_kkradio/api/radio?" + urlencode({"id": ch["id"]}))
+            # IPTV/브라우저용은 기존 프록시 주소 유지
             ch["player_url"] = ch["live_url"]
             view_rows.append(ch)
         groups = sorted({x.get("group", "기타") for x in rows})
@@ -403,6 +404,17 @@ class Logic(PluginModuleBase):
 
     def process_api(self, sub, req):
         try:
+            if sub == "radio":
+                cid = req.args.get("id", "")
+                ch = _channel(cid)
+                if not ch:
+                    return Response("channel not found", status=404)
+                # YMPlayer 라디오 호환용:
+                # FF는 인증 + 동적 URL 해석까지만 하고 실제 재생은 원본 HLS/오디오로 직접 연결.
+                # 이렇게 하면 하위 playlist/segment URL에 FF apikey가 개입하지 않는다.
+                url = resolve_channel(ch)
+                return redirect(url, code=302)
+
             if sub == "player":
                 cid = req.args.get("id", "")
                 ch = _channel(cid)
