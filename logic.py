@@ -1,6 +1,7 @@
 import base64
 import ipaddress
 import json
+from html import escape
 import re
 import socket
 import threading
@@ -236,9 +237,16 @@ class Logic(PluginModuleBase):
             }
             return render_template("ff_kkradio_setting.html", arg=arg)
         rows = _channels()
+        base = _public_ff_url()
+        view_rows = []
+        for item in rows:
+            ch = dict(item)
+            ch["live_url"] = base + ToolUtil.make_apikey_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
+            ch["player_url"] = base + ToolUtil.make_apikey_url("/ff_kkradio/api/player?" + urlencode({"id": ch["id"]}))
+            view_rows.append(ch)
         groups = sorted({x.get("group", "기타") for x in rows})
         stations = sorted({x.get("station", "") for x in rows if x.get("station")})
-        return render_template("ff_kkradio_list.html", channels=rows, groups=groups, stations=stations)
+        return render_template("ff_kkradio_list.html", channels=view_rows, groups=groups, stations=stations)
 
     def process_ajax(self, sub, req):
         if sub == "save":
@@ -259,6 +267,52 @@ class Logic(PluginModuleBase):
 
     def process_api(self, sub, req):
         try:
+            if sub == "player":
+                cid = req.args.get("id", "")
+                ch = _channel(cid)
+                if not ch:
+                    return Response("channel not found", status=404)
+                live_url = _public_ff_url() + ToolUtil.make_apikey_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": cid}))
+                name = escape(ch.get("name", cid))
+                src = json.dumps(live_url)
+                html = """<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{name} - KK Radio</title>
+<style>
+body{{margin:0;background:#111;color:#eee;font-family:Arial,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}}
+.wrap{{width:min(760px,92vw);background:#1d1d1d;border-radius:14px;padding:24px;box-sizing:border-box}}
+h2{{margin:0 0 18px}}
+audio{{width:100%}}
+.url{{margin-top:16px;word-break:break-all;font-size:13px;color:#bbb}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+</head>
+<body>
+<div class="wrap">
+<h2>{name}</h2>
+<audio id="audio" controls autoplay></audio>
+<div class="url">{url}</div>
+</div>
+<script>
+const audio=document.getElementById('audio');
+const src={src};
+if (audio.canPlayType('application/vnd.apple.mpegurl')) {{
+  audio.src=src;
+}} else if (window.Hls && Hls.isSupported()) {{
+  const hls=new Hls();
+  hls.loadSource(src);
+  hls.attachMedia(audio);
+  hls.on(Hls.Events.MANIFEST_PARSED,()=>audio.play().catch(()=>{{}}));
+}} else {{
+  audio.src=src;
+}}
+</script>
+</body>
+</html>""".format(name=name, url=escape(live_url), src=src)
+                return Response(html, mimetype="text/html")
             if sub == "m3u":
                 return Response(_m3u(group=req.args.get("group"), station=req.args.get("station"), single=req.args.get("id")), mimetype="audio/x-mpegurl")
             if sub == "channel.m3u":
