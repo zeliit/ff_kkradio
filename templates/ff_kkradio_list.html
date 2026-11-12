@@ -10,7 +10,7 @@
   <div class="table-responsive">
     <table class="table table-sm table-striped table-hover align-middle">
       <thead class="thead-dark">
-        <tr><th>이름</th><th>분류</th><th>방송사</th><th style="min-width:420px">개별 풀 주소</th><th>재생</th><th>원본</th></tr>
+        <tr><th>이름</th><th>분류</th><th>방송사</th><th style="min-width:420px">개별 풀 주소</th><th>실행</th><th>원본</th></tr>
       </thead>
       <tbody>
       {% for c in channels %}
@@ -20,10 +20,10 @@
           <td>{{ c.station|upper }}</td>
           <td>
             <code style="word-break:break-all">{{ c.live_url }}</code>
-            <button type="button" class="btn btn-sm btn-outline-secondary ml-2 kr-copy" data-url="{{ c.live_url|e }}">복사</button>
           </td>
-          <td>
-            <a class="btn btn-sm btn-success" href="{{ c.player_url }}" target="_blank" rel="noopener noreferrer">재생</a>
+          <td style="white-space:nowrap">
+            <a class="btn btn-sm btn-success mr-1" href="{{ c.player_url }}" target="_blank" rel="noopener noreferrer" style="font-weight:700;min-width:58px">▶ 재생</a>
+            <button type="button" class="btn btn-sm btn-warning kr-copy" data-url="{{ c.live_url|e }}" style="font-weight:700;min-width:58px;color:#212529">복사</button>
           </td>
           <td>
             <button type="button" class="btn btn-sm btn-primary kr-resolve" data-id="{{ c.id }}">원본확인</button>
