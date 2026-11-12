@@ -1,5 +1,5 @@
 title: "KK Radio"
-version: "0.1.6"
+version: "0.1.7"
 package_name: "ff_kkradio"
 developer: "zeliit"
 description: "국내 라디오 M3U / 개별 고정주소 / API 해석 / HLS 프록시"
