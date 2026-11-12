@@ -10,7 +10,7 @@
   <div class="table-responsive">
     <table class="table table-sm table-striped table-hover align-middle">
       <thead class="thead-dark">
-        <tr><th style="width:56px">SEQ</th><th>이름</th><th>분류</th><th>방송사</th><th style="min-width:420px">IPTV용 주소</th><th style="min-width:420px">라디오용 주소</th><th>실행</th><th>원본</th></tr>
+        <tr><th style="width:56px">SEQ</th><th>이름</th><th>분류</th><th>방송사</th><th style="min-width:420px">IPTV용 주소</th><th>실행</th><th>원본</th></tr>
       </thead>
       <tbody>
       {% for c in channels %}
@@ -22,13 +22,9 @@
           <td>
             <code style="word-break:break-all">{{ c.live_url }}</code>
           </td>
-          <td>
-            <code style="word-break:break-all">{{ c.radio_url }}</code>
-          </td>
           <td style="white-space:nowrap">
             <a class="btn btn-sm btn-success mr-1" href="{{ c.player_url }}" target="_blank" rel="noopener noreferrer" style="font-weight:700;min-width:58px">▶ 재생</a>
-            <button type="button" class="btn btn-sm btn-warning kr-copy mr-1" data-url="{{ c.live_url|e }}" style="font-weight:700;min-width:68px;color:#212529">IPTV복사</button>
-            <button type="button" class="btn btn-sm btn-info kr-copy" data-url="{{ c.radio_url|e }}" style="font-weight:700;min-width:78px;color:#fff">라디오복사</button>
+            <button type="button" class="btn btn-sm btn-warning kr-copy" data-url="{{ c.live_url|e }}" style="font-weight:700;min-width:68px;color:#212529">복사</button>
           </td>
           <td>
             <button type="button" class="btn btn-sm btn-primary kr-resolve" data-id="{{ c.id }}">원본확인</button>
