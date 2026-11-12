@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import urlencode, urljoin, urlsplit
 
 import requests
-from flask import Response, jsonify, render_template, request
+from flask import Response, jsonify, redirect, render_template, request
 from plugin import F, PluginModuleBase
 from tool import ToolUtil
 from .setup import P
@@ -462,6 +462,8 @@ if (audio.canPlayType('application/vnd.apple.mpegurl')) {{
                 if not ch:
                     return Response("channel not found", status=404)
                 url = resolve_channel(ch)
+                if ch.get("direct_passthrough"):
+                    return redirect(url, code=302)
                 r = _fetch_remote(ch, url)
                 ctype = (r.headers.get("Content-Type") or "").lower()
                 body = r.content
