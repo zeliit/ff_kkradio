@@ -339,6 +339,19 @@ class Logic(PluginModuleBase):
         }
 
     def process_menu(self, sub, req):
+        if sub == "ymplayer":
+            rows = _channels()
+            lines = []
+            for ch in rows:
+                radio_url = _ff_api_url("/ff_kkradio/api/radio?" + urlencode({"id": ch["id"]}))
+                lines.append("{} | {} | {} | {} | {}".format(
+                    ch.get("name", ch["id"]),
+                    radio_url,
+                    ch.get("description", ""),
+                    ch.get("homepage", ""),
+                    ch.get("group", "기타"),
+                ))
+            return render_template("ff_kkradio_ymplayer.html", copy_text="\n".join(lines))
         if sub == "setting":
             base = _public_ff_url()
             arg = {
