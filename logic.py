@@ -46,9 +46,16 @@ def _bool_setting(key, default=False):
 
 def _public_ff_url():
     value = (F.SystemModelSetting.get("ddns") or "").strip().rstrip("/")
-    if value.startswith("https://"):
+    if value.startswith("http://") or value.startswith("https://"):
         return value
     return request.url_root.rstrip("/")
+
+
+def _ff_api_url(path):
+    value = ToolUtil.make_apikey_url(path)
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    return _public_ff_url() + value
 
 
 def _channels():
@@ -171,7 +178,7 @@ def _b64d(s):
 
 
 def _proxy_url(cid, absolute):
-    return ToolUtil.make_apikey_url("/ff_kkradio/api/proxy?" + urlencode({"id": cid, "u": _b64e(absolute)}))
+    return _ff_api_url("/ff_kkradio/api/proxy?" + urlencode({"id": cid, "u": _b64e(absolute)}))
 
 
 def _rewrite_m3u(text, base_url, cid):
@@ -211,7 +218,7 @@ def _m3u(group=None, station=None, single=None):
         rows = [x for x in rows if x.get("id") == single]
     lines = ["#EXTM3U"]
     for ch in rows:
-        live = base + ToolUtil.make_apikey_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
+        live = _ff_api_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
         attrs = 'group-title="{}"'.format(ch.get("group", "기타").replace('"', ''))
         lines.append("#EXTINF:-1 {},{}".format(attrs, ch.get("name", ch["id"])))
         lines.append(live)
@@ -241,26 +248,26 @@ class Logic(PluginModuleBase):
         view_rows = []
         for item in rows:
             ch = dict(item)
-            ch["live_url"] = base + ToolUtil.make_apikey_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
-            ch["player_url"] = base + ToolUtil.make_apikey_url("/ff_kkradio/api/player?" + urlencode({"id": ch["id"]}))
+            ch["live_url"] = _ff_api_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
+            ch["player_url"] = _ff_api_url("/ff_kkradio/api/player?" + urlencode({"id": ch["id"]}))
             view_rows.append(ch)
         groups = sorted({x.get("group", "기타") for x in rows})
         stations = sorted({x.get("station", "") for x in rows if x.get("station")})
         group_urls = [
             {
                 "name": g,
-                "url": base + ToolUtil.make_apikey_url("/ff_kkradio/api/m3u?" + urlencode({"group": g}))
+                "url": _ff_api_url("/ff_kkradio/api/m3u?" + urlencode({"group": g}))
             }
             for g in groups
         ]
         station_urls = [
             {
                 "name": st,
-                "url": base + ToolUtil.make_apikey_url("/ff_kkradio/api/m3u?" + urlencode({"station": st}))
+                "url": _ff_api_url("/ff_kkradio/api/m3u?" + urlencode({"station": st}))
             }
             for st in stations
         ]
-        all_m3u_url = base + ToolUtil.make_apikey_url("/ff_kkradio/api/m3u")
+        all_m3u_url = _ff_api_url("/ff_kkradio/api/m3u")
         return render_template(
             "ff_kkradio_list.html",
             channels=view_rows,
@@ -295,7 +302,7 @@ class Logic(PluginModuleBase):
                 ch = _channel(cid)
                 if not ch:
                     return Response("channel not found", status=404)
-                live_url = _public_ff_url() + ToolUtil.make_apikey_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": cid}))
+                live_url = _ff_api_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": cid}))
                 name = escape(ch.get("name", cid))
                 src = json.dumps(live_url)
                 html = """<!doctype html>
