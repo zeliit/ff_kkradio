@@ -117,6 +117,23 @@ def _bsod_resolve(ch):
     return out.replace("\\/", "/")
 
 
+def _mbc_direct_resolve(ch):
+    channel_map = {"sfm": "sfm", "fm4u": "mfm", "chm": "chm"}
+    mbc_channel = channel_map.get(ch.get("channel"))
+    if not mbc_channel:
+        raise ValueError("MBC 채널 코드 없음")
+    api = "https://sminiplay.imbc.com/aacplay.ashx?" + urlencode({
+        "agent": "webapp",
+        "channel": mbc_channel,
+    })
+    r = requests.get(api, headers=_headers(ch), timeout=(6, 12))
+    r.raise_for_status()
+    url = r.text.strip().replace("\\/", "/")
+    if not url.startswith(("http://", "https://")):
+        raise ValueError("MBC 스트림 URL 추출 실패")
+    return url
+
+
 def _kbs_direct_resolve(ch):
     code_map = {"1radio":"21","2radio":"22","3radio":"23","1fm":"24","2fm":"25","hanminjok":"26"}
     city_map = {"busan":"10_","ulsan":"11_","changwon":"20_","jinju":"21_","daegu":"30_","andong":"31_","pohang":"32_","gwangju":"40_","mokpo":"41_","suncheon":"43_","jeonju":"50_","daejeon":"60_","cheongju":"70_","chungju":"71_","chuncheon":"80_","gangneung":"81_","wonju":"82_","jeju":"90_"}
@@ -153,6 +170,9 @@ def resolve_channel(ch, force=False):
             return cached[0]
     if ch.get("direct"):
         url = ch["direct"]
+    elif ch.get("station") == "mbc" and not ch.get("city") and ch.get("channel") in ("sfm", "fm4u", "chm"):
+        # 본사 MBC는 공식 mini API에서 현재 토큰이 포함된 주소를 직접 발급받는다.
+        url = _mbc_direct_resolve(ch)
     else:
         try:
             url = _bsod_resolve(ch)
@@ -160,6 +180,9 @@ def resolve_channel(ch, force=False):
             if ch.get("station") == "kbs":
                 logger.warning("[KKRadio] bsod resolve failed for %s, try KBS API: %s", cid, e)
                 url = _kbs_direct_resolve(ch)
+            elif ch.get("station") == "mbc" and not ch.get("city"):
+                logger.warning("[KKRadio] bsod resolve failed for %s, try MBC API: %s", cid, e)
+                url = _mbc_direct_resolve(ch)
             else:
                 raise
     _safe_remote(url)
@@ -238,7 +261,7 @@ class Logic(PluginModuleBase):
         if sub == "setting":
             base = _public_ff_url()
             arg = {
-                "api_m3u": base + ToolUtil.make_apikey_url("/ff_kkradio/api/m3u"),
+                "api_m3u": _ff_api_url("/ff_kkradio/api/m3u"),
                 "user_agent": _setting("user_agent", DEFAULT_UA),
                 "disabled_channels": _setting("disabled_channels", ""),
             }
@@ -249,7 +272,8 @@ class Logic(PluginModuleBase):
         for item in rows:
             ch = dict(item)
             ch["live_url"] = _ff_api_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
-            ch["player_url"] = _ff_api_url("/ff_kkradio/api/player?" + urlencode({"id": ch["id"]}))
+            # 새창 재생은 별도 JS 플레이어를 거치지 않고 FF의 실제 HLS URL을 직접 연다.
+            ch["player_url"] = ch["live_url"]
             view_rows.append(ch)
         groups = sorted({x.get("group", "기타") for x in rows})
         stations = sorted({x.get("station", "") for x in rows if x.get("station")})
