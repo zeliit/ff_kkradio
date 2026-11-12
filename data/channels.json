@@ -365,7 +365,8 @@
     "channel": "fm4u",
     "city": "daegu",
     "description": "대구MBC FM4U",
-    "homepage": "https://www.dgmbc.com/"
+    "homepage": "https://www.dgmbc.com/",
+    "direct": "https://5ee1ec6f32118.streamlock.net/fmradio/fm/playlist.m3u8"
   },
   {
     "id": "tbc_dream",
@@ -396,7 +397,8 @@
     "channel": "fm4u",
     "city": "gwangju",
     "description": "광주MBC FM4U",
-    "homepage": "https://www.kjmbc.co.kr/"
+    "homepage": "https://www.kjmbc.co.kr/",
+    "direct": "https://media.kjmbc.co.kr/hls/fmlive/GWANGJU-MBC-FM/playlist.m3u8"
   },
   {
     "id": "kbc_myfm",
