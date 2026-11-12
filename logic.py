@@ -194,28 +194,41 @@ def _kbs_direct_resolve(ch):
     if not code:
         raise ValueError("KBS 채널 코드 없음")
     full = city_map.get(ch.get("city", ""), "") + code
+    def extract(obj):
+        radio_candidates = []
+        any_candidates = []
+        def walk(x):
+            if isinstance(x, dict):
+                if x.get("service_url"):
+                    any_candidates.append(x["service_url"])
+                    if x.get("media_type") == "radio":
+                        radio_candidates.append(x["service_url"])
+                for v in x.values():
+                    walk(v)
+            elif isinstance(x, list):
+                for v in x:
+                    walk(v)
+        walk(obj)
+        candidates = radio_candidates or any_candidates
+        return candidates[0] if candidates else None
+
     api = "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/" + full
-    r = requests.get(api, headers=_headers(ch), timeout=(6, 12))
+    try:
+        r = requests.get(api, headers=_headers(ch), timeout=(6, 12))
+        r.raise_for_status()
+        found = extract(r.json())
+        if found:
+            return found
+    except Exception as e:
+        logger.warning("[KKRadio] KBS official API failed for %s: %s", full, e)
+
+    proxy_api = "https://kbs-api-proxy.bsod.workers.dev/" + full
+    r = requests.get(proxy_api, headers={"User-Agent": DEFAULT_UA, "Accept": "application/json,*/*"}, timeout=(6, 12))
     r.raise_for_status()
-    obj = r.json()
-    radio_candidates = []
-    any_candidates = []
-    def walk(x):
-        if isinstance(x, dict):
-            if x.get("service_url"):
-                any_candidates.append(x["service_url"])
-                if x.get("media_type") == "radio":
-                    radio_candidates.append(x["service_url"])
-            for v in x.values():
-                walk(v)
-        elif isinstance(x, list):
-            for v in x:
-                walk(v)
-    walk(obj)
-    candidates = radio_candidates or any_candidates
-    if not candidates:
+    found = extract(r.json())
+    if not found:
         raise ValueError("KBS service_url 추출 실패")
-    return candidates[0]
+    return found
 
 
 def resolve_channel(ch, force=False):
