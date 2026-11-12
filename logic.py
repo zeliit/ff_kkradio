@@ -117,6 +117,37 @@ def _bsod_resolve(ch):
     return out.replace("\\/", "/")
 
 
+def _sbs_direct_resolve(ch):
+    channel = ch.get("channel")
+    endpoint_map = {
+        "lovefm": "https://apis.sbs.co.kr/play-api/1.0/livestream/lovepc/lovefm?protocol=hls&ssl=Y",
+        "powerfm": "https://apis.sbs.co.kr/play-api/1.0/livestream/powerpc/powerfm?protocol=hls&ssl=Y",
+        "dmb": "https://apis.sbs.co.kr/play-api/1.0/livestream/sbsdmbpc/sbsdmb?protocol=hls&ssl=Y",
+    }
+    api = endpoint_map.get(channel)
+    if not api:
+        raise ValueError("SBS 채널 코드 없음")
+    r = requests.get(api, headers=_headers(ch), timeout=(6, 12))
+    r.raise_for_status()
+    url = r.text.strip().strip('"').replace("\\/", "/")
+    if not url.startswith(("http://", "https://")):
+        raise ValueError("SBS 스트림 URL 추출 실패")
+    return url
+
+
+def _ebs_direct_resolve(ch):
+    if ch.get("channel") == "bandi":
+        return "https://ebsonair.ebs.co.kr/cloud1/iradio/playlist.m3u8"
+    headers = _headers(ch)
+    headers["Accept"] = "text/html,application/xhtml+xml"
+    r = requests.get("https://www.ebs.co.kr/onair?channelCodeString=radio", headers=headers, timeout=(6, 12))
+    r.raise_for_status()
+    m = re.search(r"src:\s*['\"](https://liveotu\.ebs\.co\.kr/[^'\"]+)", r.text)
+    if m:
+        return m.group(1)
+    return "https://ebsonair.ebs.co.kr/fmradiofamilypc/familypc1m/playlist.m3u8"
+
+
 def _mbc_direct_resolve(ch):
     channel_map = {"sfm": "sfm", "fm4u": "mfm", "chm": "chm"}
     mbc_channel = channel_map.get(ch.get("channel"))
@@ -171,8 +202,11 @@ def resolve_channel(ch, force=False):
     if ch.get("direct"):
         url = ch["direct"]
     elif ch.get("station") == "mbc" and not ch.get("city") and ch.get("channel") in ("sfm", "fm4u", "chm"):
-        # 본사 MBC는 공식 mini API에서 현재 토큰이 포함된 주소를 직접 발급받는다.
         url = _mbc_direct_resolve(ch)
+    elif ch.get("station") == "sbs" and not ch.get("city"):
+        url = _sbs_direct_resolve(ch)
+    elif ch.get("station") == "ebs":
+        url = _ebs_direct_resolve(ch)
     else:
         try:
             url = _bsod_resolve(ch)
@@ -183,6 +217,12 @@ def resolve_channel(ch, force=False):
             elif ch.get("station") == "mbc" and not ch.get("city"):
                 logger.warning("[KKRadio] bsod resolve failed for %s, try MBC API: %s", cid, e)
                 url = _mbc_direct_resolve(ch)
+            elif ch.get("station") == "sbs" and not ch.get("city"):
+                logger.warning("[KKRadio] bsod resolve failed for %s, try SBS API: %s", cid, e)
+                url = _sbs_direct_resolve(ch)
+            elif ch.get("station") == "ebs":
+                logger.warning("[KKRadio] bsod resolve failed for %s, try EBS source: %s", cid, e)
+                url = _ebs_direct_resolve(ch)
             else:
                 raise
     _safe_remote(url)
