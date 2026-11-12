@@ -10,6 +10,7 @@ setting = {
         "name": "KK Radio",
         "list": [
             {"uri": "list", "name": "채널"},
+            {"uri": "ymplayer", "name": "YMPlayer용"},
             {"uri": "setting", "name": "설정"},
             {"uri": "log", "name": "로그"},
         ],
