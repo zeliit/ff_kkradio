@@ -80,6 +80,9 @@ def _headers(ch):
     ref = REFERERS.get(station)
     if station == "mbc" and ch.get("city"):
         ref = ch.get("homepage") or None
+    # 광주MBC는 외부 HLS 요청에서 Referer가 오히려 차단 요인이 될 수 있어 제외
+    if ch.get("id") == "mbc_gwangju_fm4u":
+        ref = None
     if ref:
         h["Referer"] = ref
     return h
@@ -293,9 +296,19 @@ def _rewrite_m3u(text, base_url, cid):
 
 def _fetch_remote(ch, url):
     _safe_remote(url)
-    r = requests.get(url, headers=_headers(ch), timeout=(8, 25), stream=True, allow_redirects=True)
-    r.raise_for_status()
-    return r
+    try:
+        r = requests.get(url, headers=_headers(ch), timeout=(8, 25), stream=True, allow_redirects=True)
+        r.raise_for_status()
+        return r
+    except requests.RequestException:
+        # 광주MBC CDN은 일부 환경에서 HTTPS 연결이 불안정하여 HTTP fallback 허용
+        if ch.get("id") == "mbc_gwangju_fm4u" and url.startswith("https://media.kjmbc.co.kr/"):
+            fallback = "http://" + url[len("https://"):]
+            _safe_remote(fallback)
+            r = requests.get(fallback, headers=_headers(ch), timeout=(8, 25), stream=True, allow_redirects=True)
+            r.raise_for_status()
+            return r
+        raise
 
 
 def _m3u(group=None, station=None, single=None):
