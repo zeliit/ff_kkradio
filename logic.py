@@ -309,8 +309,9 @@ class Logic(PluginModuleBase):
         rows = _channels()
         base = _public_ff_url()
         view_rows = []
-        for item in rows:
+        for seq, item in enumerate(rows, start=1):
             ch = dict(item)
+            ch["seq"] = seq
             ch["live_url"] = _ff_api_url("/ff_kkradio/api/live.m3u8?" + urlencode({"id": ch["id"]}))
             # 새창 재생은 별도 JS 플레이어를 거치지 않고 FF의 실제 HLS URL을 직접 연다.
             ch["player_url"] = ch["live_url"]
