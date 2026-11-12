@@ -148,6 +148,26 @@ def _ebs_direct_resolve(ch):
     return "https://ebsonair.ebs.co.kr/fmradiofamilypc/familypc1m/playlist.m3u8"
 
 
+def _busan_mbc_datecode():
+    # KST 날짜 YYMMDD를 부산MBC 전용 문자코드로 변환
+    mapping = {"0":"q","1":"h","2":"s","3":"a","4":"g","5":"b","6":"j","7":"c","8":"p","9":"d"}
+    kst = time.gmtime(time.time() + 9 * 60 * 60)
+    raw = time.strftime("%y%m%d", kst)
+    return "".join(mapping.get(c, c) for c in raw)
+
+
+def _regional_mbc_resolve(ch):
+    city = ch.get("city")
+    channel = ch.get("channel")
+    if city == "busan":
+        code = _busan_mbc_datecode()
+        if channel == "sfm":
+            return f"https://brook.bsmbc.com/live/BusanMBC_AM_onairstream.{code}/playlist.m3u8"
+        if channel == "fm4u":
+            return f"https://brook.bsmbc.com/live/BusanMBC_FM_onairstream.{code}/playlist.m3u8"
+    raise ValueError("지역 MBC 동적 주소 처리 대상 아님")
+
+
 def _mbc_direct_resolve(ch):
     channel_map = {"sfm": "sfm", "fm4u": "mfm", "chm": "chm"}
     mbc_channel = channel_map.get(ch.get("channel"))
@@ -201,6 +221,11 @@ def resolve_channel(ch, force=False):
             return cached[0]
     if ch.get("direct"):
         url = ch["direct"]
+    elif ch.get("station") == "kbs":
+        # KBS는 본사/지역국 모두 공식 API를 직접 사용
+        url = _kbs_direct_resolve(ch)
+    elif ch.get("station") == "mbc" and ch.get("city") == "busan":
+        url = _regional_mbc_resolve(ch)
     elif ch.get("station") == "mbc" and not ch.get("city") and ch.get("channel") in ("sfm", "fm4u", "chm"):
         url = _mbc_direct_resolve(ch)
     elif ch.get("station") == "sbs" and not ch.get("city"):
@@ -208,23 +233,7 @@ def resolve_channel(ch, force=False):
     elif ch.get("station") == "ebs":
         url = _ebs_direct_resolve(ch)
     else:
-        try:
-            url = _bsod_resolve(ch)
-        except Exception as e:
-            if ch.get("station") == "kbs":
-                logger.warning("[KKRadio] bsod resolve failed for %s, try KBS API: %s", cid, e)
-                url = _kbs_direct_resolve(ch)
-            elif ch.get("station") == "mbc" and not ch.get("city"):
-                logger.warning("[KKRadio] bsod resolve failed for %s, try MBC API: %s", cid, e)
-                url = _mbc_direct_resolve(ch)
-            elif ch.get("station") == "sbs" and not ch.get("city"):
-                logger.warning("[KKRadio] bsod resolve failed for %s, try SBS API: %s", cid, e)
-                url = _sbs_direct_resolve(ch)
-            elif ch.get("station") == "ebs":
-                logger.warning("[KKRadio] bsod resolve failed for %s, try EBS source: %s", cid, e)
-                url = _ebs_direct_resolve(ch)
-            else:
-                raise
+        url = _bsod_resolve(ch)
     _safe_remote(url)
     with _cache_lock:
         _resolve_cache[cid] = (url, now)
